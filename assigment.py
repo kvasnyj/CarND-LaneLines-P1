@@ -142,22 +142,23 @@ os.listdir("test_images/")
 # Import everything needed to edit/save/watch video clips
 from moviepy.editor import VideoFileClip
 
-def process_image(image, vertices):
-    color_select = np.copy(image)
-    rgb_threshold = [200, 200, 0]
-    thresholds = (image[:, :, 0] < rgb_threshold[0]) \
-                 | (image[:, :, 1] < rgb_threshold[1]) \
-                 | (image[:, :, 2] < rgb_threshold[2])
-
-    color_select[thresholds] = [0, 0, 0]
-
-    gray_image = grayscale(color_select)
-
-    #plt.imshow(color_select)
-    #plt.show()
+def process_image(image, vertices, hsv = False):
+    if hsv:
+        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        lower_yellow = np.array([70, 0, 0])
+        upper_yellow = np.array([100, 255, 255])
+        mono_image = cv2.inRange(hsv, lower_yellow, upper_yellow)
+    else:
+        color_select = np.copy(image)
+        rgb_threshold = [200, 200, 0]
+        thresholds = (image[:, :, 0] < rgb_threshold[0]) \
+                     | (image[:, :, 1] < rgb_threshold[1]) \
+                     | (image[:, :, 2] < rgb_threshold[2])
+        color_select[thresholds] = [0, 0, 0]
+        mono_image = grayscale(color_select)
 
     kernel_size = 5
-    blur_gray = gaussian_blur(gray_image, kernel_size)
+    blur_gray = gaussian_blur(mono_image, kernel_size)
 
     high_thresh, thresh_im = cv2.threshold(blur_gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     lowThresh = 0.5 * high_thresh
@@ -179,23 +180,25 @@ def process_image(image, vertices):
 def process_image1(image):
     imshape = image.shape
     vertices = np.array([[(100, imshape[0]), (450, 320), (490, 320), (imshape[1], imshape[0])]], dtype=np.int32)
-    return process_image(image, vertices)
+    return process_image(image, vertices, False)
 
 def process_image2(image):
     vertices = np.array([[(220, 680), (600, 440), (720, 440), (1120, 670)]], dtype=np.int32)
-    return process_image(image, vertices)
+    return process_image(image, vertices, True)
+
 
 """
-res = process_image(image)
+res = process_image2(image)
 plt.imshow(res)
 plt.show()
 
 
 """
-challenge_output = 'extra.mp4'
-clip2 = VideoFileClip('challenge.mp4')
+challenge_output = 'white.mp4'
+clip2 = VideoFileClip('solidWhiteRight.mp4')
 
 #clip2.save_frame("challenge3.jpeg", t=4)
 
-challenge_clip = clip2.fl_image(process_image)
+challenge_clip = clip2.fl_image(process_image1)
 challenge_clip.write_videofile(challenge_output, audio=False)
+
